@@ -2,6 +2,24 @@ pub fn find_floor(s: &str) -> i32 {
     s.chars().fold(0, |acc, x| if x == '(' { acc + 1 } else if x == ')' { acc - 1 } else { acc })
 }
 
+pub fn find_basement_instruction(s: &str) -> u32 {
+    let mut count = 0;
+    let mut floor = 0;
+
+    for c in s.chars() {
+        count += 1;
+        if c == '(' {
+            floor += 1;
+        } else if c == ')'{
+            floor -= 1;
+        }
+        if floor < 0 {
+            return count
+        }
+    } count
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -29,5 +47,15 @@ mod tests {
     fn floor_min3() {
         assert_eq!(find_floor(")))"), -3);
         assert_eq!(find_floor(")())())"), -3);
+    }
+
+    #[test]
+    fn in_basement_at1() {
+        assert_eq!(find_basement_instruction(")"), 1);
+    }
+
+    #[test]
+    fn in_basement_at5() {
+        assert_eq!(find_basement_instruction("()())"), 5);
     }
 }
