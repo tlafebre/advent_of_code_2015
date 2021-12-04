@@ -1,35 +1,64 @@
-use std::str::FromStr;
 use std::fs;
+use std::str::FromStr;
 
-fn get_instructions() -> String {
-    let filename = "data/day_2.txt";
-    
-    fs::read_to_string(filename).unwrap()
+pub struct Present {
+    length: u32,
+    width: u32,
+    height: u32,
 }
 
-pub fn solve_part1() -> u32 {
-    let instructions = get_instructions();
+impl Present {
+    fn new(sizespec: &str) -> Present {
+        let mut sizes = sizespec.split('x').map(|s| u32::from_str(s).unwrap());
+        Present { length: sizes.next().unwrap(), width: sizes.next().unwrap(), height: sizes.next().unwrap() }
+    }
 
-    instructions.lines().fold(0, |acc, x| acc + calculate_wrapping_paper(x))
+    fn sizes(&self) -> [u32; 3] {
+        [self.length, self.width, self.height]
+    }
+
+    fn sides(&self) -> [u32; 3] {
+        [self.length * self.width, self.width  * self.height, self.height * self.length]
+    }
+
+    fn smallest_side(&self) -> u32 {
+        *self.sides().iter().min().unwrap()
+    }
+
+    fn paper_size(&self) -> u32 {
+        self.sides().iter().fold(0, |sum, side| sum + side) * 2 + self.smallest_side()
+    }
+
+    fn ribbon_length(&self) -> u32 {
+        let mut sizes = self.sizes();
+        sizes.sort();
+        2 * sizes[0] + 2 * sizes[1] + sizes.iter().fold(1, |prod, size| prod * size)
+    }
 }
 
-fn get_dimensions(s: &str) -> (u32, u32, u32) {
-    let v: Vec<u32> = s.split("x").map(|s| u32::from_str(s).unwrap()).collect();
-
-    (v[0], v[1], v[2])
+pub struct Presents {
+    presents: Vec<Present>,
 }
 
-fn area_smallest_side(dimensions: (u32, u32, u32)) -> u32 {
-    let (l, w, h) = dimensions;
-    let areas = vec![l * w, w * h, l * h];
+impl Presents {
+    fn new(sizespecs: &str) -> Presents {
+        Presents { presents: sizespecs.lines().map(|line| Present::new(line)).collect() }
+    }
 
-    areas.iter().min().unwrap().clone()
+    fn paper_size(&self) -> u32 {
+        self.presents.iter().map(|p| p.paper_size()).fold(0, |sum, size| sum + size)
+    }
+
+    fn ribbon_length(&self) -> u32 {
+        self.presents.iter().map(|p| p.ribbon_length()).fold(0, |sum, size| sum + size)
+    }
 }
 
-fn calculate_wrapping_paper(s: &str) -> u32 {
-    let (l, w, h) = get_dimensions(s);
-
-    (2 * l * w) + (2 * w * h) + (2 * l * h) + area_smallest_side((l, w, h))
+pub fn solve() {
+    let sizes = fs::read_to_string("data/day_2.txt").unwrap().trim().to_string();
+    let presents = Presents::new(&sizes);
+    println!("Total paper size: {}", presents.paper_size() );
+    println!("Total ribbon length: {}", presents.ribbon_length() );
 }
 
 #[cfg(test)]
@@ -37,22 +66,24 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_get_dimensions() {
-        assert_eq!(get_dimensions("2x3x4"), (2, 3, 4));
-        assert_eq!(get_dimensions("6x5x4"), (6, 5, 4));
+    fn paper_size() {
+        assert_eq!(Present::new("2x3x4").paper_size(), 58);
+        assert_eq!(Present::new("1x1x10").paper_size(), 43);
     }
 
     #[test]
-    fn test_area_smallest_side() {
-        assert_eq!(area_smallest_side((2, 3, 4)), 6);
-        assert_eq!(area_smallest_side((6, 2, 5)), 10);
-        assert_eq!(area_smallest_side((1, 1, 10)), 1);
+    fn paper_size_sum() {
+        assert_eq!(Presents::new("2x3x4\n1x1x10").paper_size(), 101);
     }
 
     #[test]
-    fn test_calculate_wrapping_paper() {
-        assert_eq!(calculate_wrapping_paper("2x3x4"), 58);
-        assert_eq!(calculate_wrapping_paper("1x1x10"), 43);
+    fn ribbon_length() {
+        assert_eq!(Present::new("2x3x4").ribbon_length(), 34);
+        assert_eq!(Present::new("1x1x10").ribbon_length(), 14);
     }
 
+    #[test]
+    fn ribbon_length_sum() {
+        assert_eq!(Presents::new("2x3x4\n1x1x10").ribbon_length(), 48);
+    }
 }
